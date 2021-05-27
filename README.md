@@ -24,6 +24,4 @@ monoでsinsを実行し、任意でminecraftサーバーとdiscord botを起動�
 
 以上でsinsの導入は完了です。
 
-
-
 stplug https://github.com/D-R-D/stplug
