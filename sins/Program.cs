@@ -13,7 +13,7 @@ namespace sins
     {
         static Process proc = new Process();
         static StreamWriter cmdsw;
-        static UdpClient udp, udp2, udpClient,udpClient2;
+        static UdpClient udp, udp2, udpClient, udpClient2;
         static List<string> container = new List<string>();
 
         static void Main(string[] args)
@@ -67,65 +67,11 @@ namespace sins
 
             try
             {
-
-                //ここのコンテナ起動する部分は不要
-
-                if (cmd_sped[0] == "container")
-                {
-                    if (cmd_sped[1] == "start")
-                    {
-                        if (!container.Contains(cmd_sped[2]))
-                        {
-                            container.Add(cmd_sped[2]);
-
-                            ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "コンテナ起動用のシェルのフルパス "+cmd_sped[2]);
-                            Process.Start(start);
-
-                            cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が起動しました。");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
-                            cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
-                        }
-                    }
-                    else if (cmd_sped[1] == "stop")
-                    {
-                        if (container.Contains(cmd_sped[2]))
-                        {
-                            ProcessStartInfo stop = new ProcessStartInfo("/usr/bin/bash", "コンテナ停止用のシェルのフルパス " + cmd_sped[2]);
-                            Process.Start(stop);
-
-                            container.Remove(cmd_sped[2]);
-
-                            cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が終了しました。");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません。");
-                            cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません");
-                        }
-                    }
-                    else if (cmd_sped[1] == "dead")
-                    {
-                        Console.WriteLine("Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
-                        cmdsw.WriteLine("alert Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
-                        container.Remove(cmd_sped[2]);
-                    }
-                    else
-                    {
-                        Console.WriteLine("UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
-                        cmdsw.WriteLine("alert UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
-                    }
-                }
-                else
-                {
-                    cmdsw.WriteLine(rcvcmd);
-                }
+                datas(cmd_sped , rcvcmd);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                Console.WriteLine("Process Err : 不明なエラーです。cmd = " + rcvcmd +"\nSystem_Message : "+ex.Message);
+                Console.WriteLine("Process Err : 不明なエラーです。cmd = " + rcvcmd + "\nSystem_Message : " + ex.Message);
                 cmdsw.WriteLine("alert Process Err : 不明なエラーです。cmd = " + rcvcmd + "   System_Message : " + ex.Message);
 
             }
@@ -152,60 +98,9 @@ namespace sins
 
             try
             {
-                if (cmd_sped[0] == "container")
-                {
-                    if (cmd_sped[1] == "start")
-                    {
-                        if (!container.Contains(cmd_sped[2]))
-                        {
-                            container.Add(cmd_sped[2]);
-
-                            ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "コンテナ起動用のシェルのフルパス " + cmd_sped[2]);
-                            Process.Start(start);
-
-                            cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が起動しました。");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
-                            cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
-                        }
-                    }
-                    else if (cmd_sped[1] == "stop")
-                    {
-                        if (container.Contains(cmd_sped[2]))
-                        {
-                            ProcessStartInfo stop = new ProcessStartInfo("/usr/bin/bash", "コンテナ停止用のシェルのフルパス " + cmd_sped[2]);
-                            Process.Start(stop);
-
-                            container.Remove(cmd_sped[2]);
-
-                            cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が終了しました。");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません。");
-                            cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません");
-                        }
-                    }
-                    else if (cmd_sped[1] == "dead")
-                    {
-                        Console.WriteLine("Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
-                        cmdsw.WriteLine("alert Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
-                        container.Remove(cmd_sped[2]);
-                    }
-                    else
-                    {
-                        Console.WriteLine("UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
-                        cmdsw.WriteLine("alert UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
-                    }
-                }
-                else
-                {
-                    cmdsw.WriteLine(rcvcmd);
-                }
+                datas(cmd_sped , rcvcmd);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine("Process Err : 不明なエラーです。cmd = " + rcvcmd + "\nSystem_Message : " + ex.Message);
                 cmdsw.WriteLine("alert Process Err : 不明なエラーです。cmd = " + rcvcmd + "   System_Message : " + ex.Message);
@@ -235,6 +130,64 @@ namespace sins
             cmdsw = proc.StandardInput;
 
             proc.WaitForExit();
+        }
+
+        static void datas(string[] cmd_sped , string rcvcmd)
+        {
+
+            if (cmd_sped[0] == "container")
+            {
+                if (cmd_sped[1] == "start")
+                {
+                    if (!container.Contains(cmd_sped[2]))
+                    {
+                        container.Add(cmd_sped[2]);
+
+                        ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "コンテナ起動用のシェルのフルパス " + cmd_sped[2]);
+                        Process.Start(start);
+
+                        cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が起動しました。");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
+                        cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
+                    }
+                }
+                else if (cmd_sped[1] == "stop")
+                {
+                    if (container.Contains(cmd_sped[2]))
+                    {
+                        ProcessStartInfo stop = new ProcessStartInfo("/usr/bin/bash", "コンテナ停止用のシェルのフルパス " + cmd_sped[2]);
+                        Process.Start(stop);
+
+                        container.Remove(cmd_sped[2]);
+
+                        cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が終了しました。");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません。");
+                        cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません");
+                    }
+                }
+                else if (cmd_sped[1] == "dead")
+                {
+                    Console.WriteLine("Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
+                    cmdsw.WriteLine("alert Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
+                    container.Remove(cmd_sped[2]);
+                }
+                else
+                {
+                    Console.WriteLine("UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
+                    cmdsw.WriteLine("alert UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
+                }
+            }
+            else
+            {
+                cmdsw.WriteLine(rcvcmd);
+            }
+
         }
         //サーバー起動のためのプロセス――――――――――――――――――――――――――――――――――――――――
     }
