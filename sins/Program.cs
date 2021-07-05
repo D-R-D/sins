@@ -183,6 +183,10 @@ namespace sins
                     cmdsw.WriteLine("alert UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
                 }
             }
+            else if(cmd_sped[0] == "alert")
+            {
+                cmdsw.WriteLine("alert [from discord + " + cmd_sped[1] + " ] : " + cmd_sped[2]);
+            }
             else
             {
                 cmdsw.WriteLine(rcvcmd);
