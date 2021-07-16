@@ -13,8 +13,8 @@ namespace sins
     {
         static Process proc = new Process();
         static StreamWriter cmdsw;
-        static UdpClient udp, udp2, udpClient, udpClient2;
-        static List<string> container = new List<string>();
+        static UdpClient udp, udp2, udp3, udp4, udpClient, udpClient2, udpClient3, udpClient4;
+        static List<List<string>> container = new List<List<string>>();
 
         static void Main(string[] args)
         {
@@ -30,6 +30,16 @@ namespace sins
             IPEndPoint IPE2 = new IPEndPoint(IPAddress.Any, 6011);
             udpClient2 = new UdpClient(IPE2);
             udpClient2.BeginReceive(ReceiveCallback2, udpClient2);
+
+            //非同期udpでポート6021をlisten
+            IPEndPoint IPE3 = new IPEndPoint(IPAddress.Any, 6021);
+            udpClient3 = new UdpClient(IPE3);
+            udpClient3.BeginReceive(ReceiveCallback3, udpClient3);
+
+            //非同期udpでポート7011をlisten
+            IPEndPoint IPE4 = new IPEndPoint(IPAddress.Any, 7011);
+            udpClient4 = new UdpClient(IPE4);
+            udpClient4.BeginReceive(ReceiveCallback4, udpClient4);
 
 
             //別スレッドでproxyを実行
@@ -111,6 +121,77 @@ namespace sins
         /*plugin用*/
         //
 
+
+
+        //
+        /*netcat用ポート6021でlisten*/
+        //
+        static void ReceiveCallback3(IAsyncResult ar)
+        {
+            udp3 = (UdpClient)ar.AsyncState;
+            IPEndPoint remoteEP = null;
+            byte[] rcvBytes = null;
+
+            try { rcvBytes = udp3.EndReceive(ar, ref remoteEP); }
+            catch (Exception ex) { Console.WriteLine(ex.Message); }
+            string rcvcmd = Encoding.UTF8.GetString(rcvBytes);
+
+            if(rcvcmd == "reboot")
+            {
+                for(int i = 0 ; i < container.Count ; i++)
+                {
+                    if (container[i][0] == "mcp_h")
+                    {
+                        sender(rcvcmd, container[i][1]);
+                        cmdsw.WriteLine("alert sys_Message : サーバーのアップデートを開始します。これにはサーバーの再起動を伴うため一旦作業を中断し、10分のちに再ログインして下さい。");
+                    }
+                }
+            }
+            udp3.BeginReceive(ReceiveCallback3, udp3);
+        }
+        //
+        /*netcat用*/
+        //
+
+
+
+        //
+        /*データ用*/
+        //
+        static void ReceiveCallback4(IAsyncResult ar)
+        {
+            udp4 = (UdpClient)ar.AsyncState;
+            IPEndPoint remoteEP = null;
+            byte[] rcvBytes = null;
+
+            try { rcvBytes = udp4.EndReceive(ar, ref remoteEP); }
+            catch (Exception ex) { Console.WriteLine(ex.Message); }
+            string rcvcmd = Encoding.UTF8.GetString(rcvBytes);
+            string[] cmd_sped = rcvcmd.Split(":");
+
+            ilis(cmd_sped , remoteEP.Address);
+
+            udp4.BeginReceive(ReceiveCallback4, udp4);
+        }
+        //
+        /*データ用*/
+        //
+
+
+        //
+        /*鯖に送信するやつ*/
+        //
+        static void sender(string msg , string ip)
+        {
+            UdpClient sudp = new UdpClient();
+            byte[] sendBytes = Encoding.UTF8.GetBytes(msg);
+
+            sudp.Send(sendBytes, sendBytes.Length, ip, 7001);
+        }
+        //
+        /*鯖に送信するやつ*/
+        //
+
         //プロセス間通信のためのudp接続―――――――――――――――――――――――――――――――――――――――
 
 
@@ -135,63 +216,137 @@ namespace sins
         static void datas(string[] cmd_sped , string rcvcmd)
         {
 
+
             if (cmd_sped[0] == "container")
             {
+
+
                 if (cmd_sped[1] == "start")
                 {
-                    if (!container.Contains(cmd_sped[2]))
-                    {
-                        container.Add(cmd_sped[2]);
 
+
+                    bool bl = false;
+                    for (int i = 0; i > container.Count; i++)
+                    {
+
+
+                        if (container[i].Contains(cmd_sped[1]))
+                        {
+                            bl = true;
+                        }
+                    }
+
+
+                    if (!bl)
+                    {
                         ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "コンテナ起動用のシェルのフルパス " + cmd_sped[2]);
                         Process.Start(start);
 
                         cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が起動しました。");
                     }
+
+
                     else
                     {
                         Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
                         cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
                     }
                 }
+
+
                 else if (cmd_sped[1] == "stop")
                 {
-                    if (container.Contains(cmd_sped[2]))
-                    {
-                        ProcessStartInfo stop = new ProcessStartInfo("/usr/bin/bash", "コンテナ停止用のシェルのフルパス " + cmd_sped[2]);
-                        Process.Start(stop);
 
-                        container.Remove(cmd_sped[2]);
 
-                        cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が終了しました。");
-                    }
-                    else
+                    for (int i = 0; i > container.Count; i++)
                     {
-                        Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません。");
-                        cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません");
+
+
+                        if (container[i].Contains(cmd_sped[2]))
+                        {
+                            ProcessStartInfo stop = new ProcessStartInfo("/usr/bin/bash", "コンテナ停止用のシェルのフルパス " + cmd_sped[2]);
+                            Process.Start(stop);
+
+                            container.Remove(container[i]);
+
+                            cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が終了しました。");
+
+                            break;
+                        }
                     }
+
+
+                    Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません。");
+                    cmdsw.WriteLine("alert Process Err : 指定されたコンテナ [ " + cmd_sped[2] + "] は起動していません");
                 }
+
+
                 else if (cmd_sped[1] == "dead")
                 {
                     Console.WriteLine("Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
                     cmdsw.WriteLine("alert Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
-                    container.Remove(cmd_sped[2]);
                 }
+
+
                 else
                 {
                     Console.WriteLine("UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
                     cmdsw.WriteLine("alert UDP Err : 不明なコマンドを受信しました。\ncmd_content : " + rcvcmd);
                 }
             }
+
+
             else if(cmd_sped[0] == "alert")
             {
                 cmdsw.WriteLine("alert [from discord + " + cmd_sped[1] + " ] : " + cmd_sped[2]);
             }
+
+
             else
             {
                 cmdsw.WriteLine(rcvcmd);
             }
+        }
 
+
+        static void ilis(string[] spd, IPAddress ip)
+        {
+            bool ctn = false;
+            for(int i = 0; i > container.Count ; i++)
+            {
+                if(container[i].Contains(spd[0]))
+                {
+                    if(spd[1] == "stopped")
+                    {
+                        container.Remove(container[i]);
+                    }
+                    else if(spd[1] == "started")
+                    {
+                        container[i].Add(ip.ToString());
+                    }
+                    else { }
+                    break;
+                }
+                else
+                {
+                    if(spd[1] == "starting")
+                    {
+                        container[container.Count].Add(spd[0]);
+                    }
+                    else if (spd[1] == "started")
+                    {
+                        ctn = true;
+                        break;
+                    }
+                }
+
+                if(ctn)
+                {
+                    container.Add(new List<string>());
+                    container[container.Count].Add(spd[0]);
+                    container[container.Count].Add(ip.ToString());
+                }
+            }
         }
         //サーバー起動のためのプロセス――――――――――――――――――――――――――――――――――――――――
     }
