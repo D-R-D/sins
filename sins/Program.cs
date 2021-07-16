@@ -77,7 +77,7 @@ namespace sins
 
             try
             {
-                datas(cmd_sped , rcvcmd);
+                datas(cmd_sped, rcvcmd);
             }
             catch (Exception ex)
             {
@@ -108,7 +108,7 @@ namespace sins
 
             try
             {
-                datas(cmd_sped , rcvcmd);
+                datas(cmd_sped, rcvcmd);
             }
             catch (Exception ex)
             {
@@ -136,9 +136,9 @@ namespace sins
             catch (Exception ex) { Console.WriteLine(ex.Message); }
             string rcvcmd = Encoding.UTF8.GetString(rcvBytes);
 
-            if(rcvcmd == "reboot")
+            if (rcvcmd == "reboot")
             {
-                for(int i = 0 ; i < container.Count ; i++)
+                for (int i = 0; i < container.Count; i++)
                 {
                     if (container[i][0] == "mcp_h")
                     {
@@ -156,7 +156,7 @@ namespace sins
 
 
         //
-        /*データ用*/
+        /*データ用ポート7011でlisten*/
         //
         static void ReceiveCallback4(IAsyncResult ar)
         {
@@ -169,7 +169,7 @@ namespace sins
             string rcvcmd = Encoding.UTF8.GetString(rcvBytes);
             string[] cmd_sped = rcvcmd.Split(":");
 
-            ilis(cmd_sped , remoteEP.Address);
+            ilis(cmd_sped, remoteEP.Address);
 
             udp4.BeginReceive(ReceiveCallback4, udp4);
         }
@@ -181,7 +181,7 @@ namespace sins
         //
         /*鯖に送信するやつ*/
         //
-        static void sender(string msg , string ip)
+        static void sender(string msg, string ip)
         {
             UdpClient sudp = new UdpClient();
             byte[] sendBytes = Encoding.UTF8.GetBytes(msg);
@@ -213,7 +213,7 @@ namespace sins
             proc.WaitForExit();
         }
 
-        static void datas(string[] cmd_sped , string rcvcmd)
+        static void datas(string[] cmd_sped, string rcvcmd)
         {
 
 
@@ -226,10 +226,8 @@ namespace sins
 
 
                     bool bl = false;
-                    for (int i = 0; i > container.Count; i++)
+                    for (int i = 0; i <= container.Count; i++)
                     {
-
-
                         if (container[i].Contains(cmd_sped[1]))
                         {
                             bl = true;
@@ -237,7 +235,7 @@ namespace sins
                     }
 
 
-                    if (!bl)
+                    if (bl)
                     {
                         ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "コンテナ起動用のシェルのフルパス " + cmd_sped[2]);
                         Process.Start(start);
@@ -258,7 +256,7 @@ namespace sins
                 {
 
 
-                    for (int i = 0; i > container.Count; i++)
+                    for (int i = 0; i <= container.Count; i++)
                     {
 
 
@@ -296,7 +294,7 @@ namespace sins
             }
 
 
-            else if(cmd_sped[0] == "alert")
+            else if (cmd_sped[0] == "alert")
             {
                 cmdsw.WriteLine("alert [from discord + " + cmd_sped[1] + " ] : " + cmd_sped[2]);
             }
@@ -312,39 +310,46 @@ namespace sins
         static void ilis(string[] spd, IPAddress ip)
         {
             bool ctn = false;
-            for(int i = 0; i > container.Count ; i++)
+            for (int i = 0; i <= container.Count; i++)
             {
-                if(container[i].Contains(spd[0]))
+                Console.WriteLine(spd[0] + ":" + spd[1]);
+                if (container[i].Contains(spd[0]))
                 {
-                    if(spd[1] == "stopped")
+                    if (spd[1] == "stopped")
                     {
                         container.Remove(container[i]);
+                        Console.WriteLine(spd[0] + " removed");
                     }
-                    else if(spd[1] == "started")
+                    else if (spd[1] == "started")
                     {
                         container[i].Add(ip.ToString());
+                        Console.WriteLine(container[i][0] +" started " + container[i][1]);
                     }
                     else { }
                     break;
                 }
                 else
                 {
-                    if(spd[1] == "starting")
+                    if (spd[1] == "starting")
                     {
+                        container.Add(new List<string>());
                         container[container.Count].Add(spd[0]);
+                        Console.WriteLine(container[container.Count -1][0] + " starting");
                     }
                     else if (spd[1] == "started")
                     {
                         ctn = true;
-                        break;
                     }
                 }
 
-                if(ctn)
+                if (ctn)
                 {
                     container.Add(new List<string>());
                     container[container.Count].Add(spd[0]);
                     container[container.Count].Add(ip.ToString());
+                    Console.WriteLine(container[container.Count - 1][0] + " started " + container[container.Count -1][1]);
+
+                    break;
                 }
             }
         }
