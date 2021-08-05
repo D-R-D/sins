@@ -19,10 +19,9 @@ sinsを入れたフォルダ内にdockerコンテナの起動・停止用のシ�
   
 作成するシェルの例(停止)：  
   
-#!/bin/bash  　
+#!/bin/bash
 /usr/bin/docker stop $1  
-  
-  
+
 monoでsinsを実行し、任意でminecraftサーバーとdiscord botを起動する。(この時、minecraftサーバーはstplug(最下段に記述)を導入済み　discord botはsins用に通信ができるものとする)
   
 以上でsinsの導入は完了です。
