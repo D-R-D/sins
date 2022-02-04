@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace sins
 {
@@ -15,6 +16,7 @@ namespace sins
         static StreamWriter cmdsw;
         static UdpClient udp, udp2, udp3, udp4, udpClient, udpClient2, udpClient3, udpClient4;
         static List<List<string>> container = new List<List<string>>();
+        readonly static string udsp = @"/home/nisinn/uds_sock/mc_server/";
 
         static void Main(string[] args)
         {
@@ -43,7 +45,6 @@ namespace sins
             IPEndPoint IPE4 = new IPEndPoint(IPAddress.Any, 7011);
             udpClient4 = new UdpClient(IPE4);
             udpClient4.BeginReceive(ReceiveCallback4, udpClient4);
-
 
             //別スレッドでproxyを実行
             Thread thread = new Thread(new ThreadStart(() =>
@@ -102,7 +103,7 @@ namespace sins
 
         //
         /*plugin用ポート6011でlisten*/
-        //
+        //hubサーバー　コマンド
         static void ReceiveCallback2(IAsyncResult ar)
         {
             udp2 = (UdpClient)ar.AsyncState;
@@ -126,7 +127,7 @@ namespace sins
             udp2.BeginReceive(ReceiveCallback2, udp2);
         }
         //
-        /*plugin用*/
+        /*pluginコマンド応答用*/
         //
 
 
@@ -165,7 +166,7 @@ namespace sins
 
         //
         /*データ用ポート7011でlisten*/
-        //
+        //hubサーバー
         static void ReceiveCallback4(IAsyncResult ar)
         {
             udp4 = (UdpClient)ar.AsyncState;
@@ -177,18 +178,18 @@ namespace sins
             string rcvcmd = Encoding.UTF8.GetString(rcvBytes);
             string[] cmd_sped = rcvcmd.Split(":");
 
-            ilis(cmd_sped, remoteEP.Address);
+            ilis(cmd_sped, remoteEP.Address.ToString());
 
             udp4.BeginReceive(ReceiveCallback4, udp4);
         }
         //
-        /*データ用*/
+        /*ステータス管理用*/
         //
 
 
         //
         /*鯖に送信するやつ*/
-        //
+        //hubサーバー
         static void sender(string msg, string ip)
         {
             UdpClient sudp = new UdpClient();
@@ -223,16 +224,10 @@ namespace sins
 
         static void datas(string[] cmd_sped, string rcvcmd)
         {
-
-
             if (cmd_sped[0] == "container")
             {
-
-
                 if (cmd_sped[1] == "start")
                 {
-
-
                     bool bl = false;
                     try
                     {
@@ -298,34 +293,101 @@ namespace sins
         }
 
         //起動・終了等のステータスの記憶、そしてipアドレスをlistで管理する。
-        static void ilis(string[] spd, IPAddress ip)
+        static void ilis(string[] spd, string ip)
         {
+            //spd content == [containername] : [serverstatus]
+
             int n = 0;
-            for (int i = 0; i < container.Count; i++)
+            if(spd[1] == "starting")
             {
-                if (container[i][0] == spd[0])
+                for(int i = 0 ; i < container.Count ; i++)
                 {
-                    if (spd[1] == "stopped")
+                    if (container[i][0] == spd[0])
+                    {
+                        container[i][1] == spd[1];
+                        container[i][2] == ip.ToString();
+                    }
+                    else
+                    {
+                        container.Add(new List<string>());
+                        container[container.Count - 1].Add(spd);
+                        container[container.Count - 1].Add(ip.ToString());
+                    }
+                }
+            }
+            else if(spd[1] == "started")
+            {
+                for(int i = 0 ; i < container.Count ; i++)
+                {
+                    if (container[i][0] == spd[0])
+                    {
+                        container[i][1] == spd[1];
+                        container[i][2] == ip.ToString();
+                    }
+                    else
+                    {
+                        container.Add(new List<string>());
+                        container[container.Count - 1].Add(spd);
+                        container[container.Count - 1].Add(ip.ToString());
+                    }
+                }
+            }
+            else if(spd[1] == "stopped")
+            {
+                for (int i = 0 ; i < container.Count ; i++)
+                {
+                    if(container[i][0] == spd[0])
                     {
                         container.RemoveAt(i);
                     }
                     else { }
                     return;
                 }
-                //startingを実装する際に必要になる。
-                else if (!(container[i][0] == spd[0]))
-                {
-                }
-            }
-
-            if (spd[1] == "started")
-            {
-                container.Add(new List<string>());
-                n = container.Count - 1;
-                container[n].Add(spd[0]);
-                container[n].Add(ip.ToString());
             }
         }
+
+        static void unix_sock_server(string path)
+        {
+            string mine_path = udsp + path + "/receive";
+
+            try
+            {
+                if(Directory.Exists(udsp + path))
+                { Directory.CreateDirectory(udsp + path); }
+                //ソケットファイルがあったら処す
+                if (File.Exists(mine_path))
+                { File.Delete(mine_path); }
+
+                //ソケットは使ったらゴミ箱へ！！
+                using (var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP))
+                {
+                    //エンドポイントを作ってソケットにBindする
+                    var EP = new UnixDomainSocketEndPoint(mine_path);
+                    socket.Bind(EP);
+
+                    while (true)
+                    {
+                        //通信受け入れ開始
+                        socket.Listen(1);
+                        //要求があれば受け入れる
+                        var s = socket.Accept();
+
+                        //もらったbyte配列をUTF-8でエンコードしてConsoleにWriteLineする
+                        byte[] buffer = new byte[1024];
+                        var numberOfBytesReceived = s.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+                        var sign = Encoding.UTF8.GetString(buffer, 0, numberOfBytesReceived);
+
+                        var ssign = sign.Split(":");
+
+                        if (ssign[1] != "stopped")
+                        { datas(ssign, sign); }
+                        else { break; }
+                    }
+                }
+            }
+            //エラー通知
+            catch (Exception e) { Console.WriteLine(e.Message); }
+        }
+        //サーバー起動のためのプロセス――――――――――――――――――――――――――――――――――――――――
     }
-    //サーバー起動のためのプロセス――――――――――――――――――――――――――――――――――――――――
 }
