@@ -52,13 +52,6 @@ namespace sins
                 backprocess();
             }));
             thread.Start();
-            Thread thread0 = new Thread(new ThreadStart(() =>
-            {
-                ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "スクリプトのパス " + "mcp_h");
-                Process.Start(start);
-            }));
-            thread0.Start();
-
 
             //コード到達時の待機・確認用
             using (ManualResetEvent manualResetEvent = new ManualResetEvent(false))
