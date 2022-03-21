@@ -1,4 +1,6 @@
-﻿using System;
+﻿//
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -156,7 +158,6 @@ namespace sins
         //
 
 
-
         //
         /*データ用ポート7011でlisten*/
         //hubサーバー
@@ -197,7 +198,12 @@ namespace sins
         //プロセス間通信のためのudp接続―――――――――――――――――――――――――――――――――――――――
 
 
+
         //サーバー起動のためのプロセス――――――――――――――――――――――――――――――――――――――――
+        
+        //
+        /*プロキシの起動*/
+        //
         static void backprocess()
         {
             ProcessStartInfo p = new ProcessStartInfo("java", "-jar プロキシサーバーのフルパス");
@@ -214,7 +220,14 @@ namespace sins
 
             proc.WaitForExit();
         }
+        //
+        /*プロキシの起動*/
+        //
 
+
+        //
+        /*サーバーの状態確認通知 && サーバー起動・停止操作*/
+        //
         static void datas(string[] cmd_sped, string rcvcmd)
         {
             if (cmd_sped[0] == "container")
@@ -238,11 +251,12 @@ namespace sins
 
                     if (!bl)
                     {
-                        ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "スクリプトのフルパス " + cmd_sped[2]);
+                        ProcessStartInfo start = new ProcessStartInfo("/usr/bin/bash", "起動スクリプトのフルパス " + cmd_sped[2]);
                         Process.Start(start);
 
                         cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] が起動しました。");
                     }
+
                     else
                     {
                         Console.WriteLine("Process Err : 指定されたコンテナ [ " + cmd_sped[2] + " ] は既に起動しています。");
@@ -250,20 +264,19 @@ namespace sins
                     }
                 }
 
-
                 else if (cmd_sped[1] == "stop")
                 {
-                    //stopコマンドは動作時にプロキシが再起動することがあるので削除、通知メッセージのみを送信する。
-                    cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] は終了しています。");
+                    //stopコマンドは動作時にプロキシが再起動することがあるので削除、一時的な措置として通知メッセージのみを送信する。
+                    //ProcessStartInfo stop = new ProcessStartInfo("/use/bin/bash", "停止スクリプトのフルパス " + cmd_sped[2]);
+                    //Process.Start(stop);
+                    cmdsw.WriteLine("alert sins_Message : 指定されたコンテナ [ " + cmd_sped[2] + " ] を終了しています。");
                 }
-
 
                 else if (cmd_sped[1] == "dead")
                 {
                     Console.WriteLine("Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
                     cmdsw.WriteLine("alert Process message : コンテナ [ " + cmd_sped[2] + " ] は終了しました。");
                 }
-
 
                 else
                 {
@@ -272,38 +285,42 @@ namespace sins
                 }
             }
 
-
             else if (cmd_sped[0] == "alert")
             {
                 cmdsw.WriteLine("alert [from discord + " + cmd_sped[1] + " ] : " + cmd_sped[2]);
             }
-
 
             else
             {
                 cmdsw.WriteLine(rcvcmd);
             }
         }
+        //
+        /*サーバーの状態確認通知 && サーバー起動・停止操作*/
+        //
 
-        //起動・終了等のステータスの記憶、そしてipアドレスをlistで管理する。
+
+        //
+        /*起動・終了等のステータスの記憶、そしてipアドレスをlistで管理する。*/
+        //
         static void ilis(string[] spd, string ip)
         {
             //spd content == [containername] : [serverstatus]
 
-            int n = 0;
             if(spd[1] == "starting")
             {
                 for(int i = 0 ; i < container.Count ; i++)
                 {
                     if (container[i][0] == spd[0])
                     {
-                        container[i][1] == spd[1];
-                        container[i][2] == ip.ToString();
+                        container[i][1] = spd[1];
+                        container[i][2] = ip.ToString();
                     }
                     else
                     {
                         container.Add(new List<string>());
-                        container[container.Count - 1].Add(spd);
+                        container[container.Count - 1].Add(spd[0]);
+                        container[container.Count - 1].Add(spd[1]);
                         container[container.Count - 1].Add(ip.ToString());
                     }
                 }
@@ -314,13 +331,14 @@ namespace sins
                 {
                     if (container[i][0] == spd[0])
                     {
-                        container[i][1] == spd[1];
-                        container[i][2] == ip.ToString();
+                        container[i][1] = spd[1];
+                        container[i][2] = ip.ToString();
                     }
                     else
                     {
                         container.Add(new List<string>());
-                        container[container.Count - 1].Add(spd);
+                        container[container.Count - 1].Add(spd[0]);
+                        container[container.Count - 1].Add(spd[1]);
                         container[container.Count - 1].Add(ip.ToString());
                     }
                 }
@@ -333,23 +351,35 @@ namespace sins
                     {
                         container.RemoveAt(i);
                     }
-                    else { }
+                    else { /*namakeru*/ }
                     return;
                 }
             }
+            else if(spd[1] == "reboot")
+            {
+                //サーバーアップデート時の状態、機能追加を思案中
+            }
+            else { /*怠ける*/ }
         }
+        //
+        /*サーバー管理用*/
+        //
 
+
+        //
+        /*uds通信用のメソッド*/
+        //
         static void unix_sock_server(string path)
         {
             string mine_path = udsp + path + "/receive";
 
             try
             {
-                if(Directory.Exists(udsp + path))
-                { Directory.CreateDirectory(udsp + path); }
+                if(Directory.Exists(udsp + path)) { Directory.CreateDirectory(udsp + path); }
+                else { /*怠ける*/ }
                 //ソケットファイルがあったら処す
-                if (File.Exists(mine_path))
-                { File.Delete(mine_path); }
+                if (File.Exists(mine_path)) { File.Delete(mine_path); }
+                else { /*怠ける*/ }
 
                 //ソケットは使ったらゴミ箱へ！！
                 using (var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP))
@@ -381,6 +411,10 @@ namespace sins
             //エラー通知
             catch (Exception e) { Console.WriteLine(e.Message); }
         }
+        //
+        /*uds通信用のメソッド*/
+        //
+
         //サーバー起動のためのプロセス――――――――――――――――――――――――――――――――――――――――
     }
 }
